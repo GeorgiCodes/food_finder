@@ -28,16 +28,19 @@ class Restaurant
   end
 
   def self.saved_restaurants
+    # we could set @@restaurants so that we don't read from file each time
+    # considerations are other people working on the file at the same time etc.
     restaurants = []
     if !file_useable?
       restaurants
     end
 
-    file_contents = File.open(@@filepath)
-    file_contents.each do |line|
-      args = line.split("\t")
-      restaurants << self.new(args)
+    file = File.new(@@filepath, 'r')
+    file.each_line do |line|
+      restaurant = Restaurant.new.import_line(line.chomp)
+      restaurants << restaurant
     end
+    file.close
     restaurants
   end
 
@@ -61,6 +64,11 @@ class Restaurant
     @name = args[:name] || ""
     @cuisine = args[:cuisine] || ""
     @price = args[:price] || ""
+  end
+
+  def import_line(line)
+    @name, @cuisine, @price = line.split("\t")
+    self
   end
 
   def save

@@ -14,8 +14,8 @@ class Guide
     intro
     result = nil
     until result == :quit
-      user_response = get_action
-      result = perform_action(user_response)
+      user_response, args = get_action
+      result = perform_action(user_response, args)
     end
     outro
   end
@@ -27,21 +27,21 @@ class Guide
     until actions.include?(action)
       puts "Allowed actions: " + actions.join(", ") if action
       print "> "
-      action = gets.chomp.downcase.strip
+      args = gets.chomp.downcase.strip.split(' ')
+      action = args.shift
     end
-    return action
+    return action, args
   end
 
-  def perform_action(action)
+  def perform_action(action, args=[])
     case action
     when "quit"
       return :quit
     when "list"
       list
-    when "find"
-      puts "FIND A RESTAURANT\n\n"
-      puts "Find using a key phrase  to search the restaurant list."
-      puts "Examples: 'find talame', 'find Mexican', 'find mex'"
+      when "find"
+      search_term = args.first
+      find(search_term)
     when "add"
       add
     end
@@ -50,6 +50,28 @@ class Guide
   def add
     restaurant = Restaurant.build_using_questions
     save_restaurant(restaurant)
+  end
+
+  def find(search_term="")
+    if (!search_term)
+      puts "Find using a key phrase to search the restaurant list."
+      puts "Examples: 'find talame', 'find Mexican', 'find mex'"
+      return
+    end
+
+    restaurants = Restaurant.saved_restaurants
+    filtered = restaurants.select do |rest|
+      rest.name.downcase.include?(search_term.downcase) ||
+      rest.cuisine.downcase.include?(search_term.downcase) ||
+      rest.price.to_i <= search_term.to_i
+    end
+
+    if (filtered.empty?)
+      puts "No Listings found."
+    else
+      puts filtered
+      output_restaurants(filtered)
+    end
   end
 
   def save_restaurant(restaurant)
@@ -63,8 +85,12 @@ class Guide
   def list
     results = Restaurant.saved_restaurants
     puts "\nRestaurant Listings\n\n".upcase
-    results.each do |restaurant|
-      puts restaurant.name
+    output_restaurants(results)
+  end
+
+  def output_restaurants(list)
+    list.each do |rest|
+      puts rest.name + " | " + rest.cuisine + " | " + rest.price
     end
   end
 
